@@ -3,7 +3,8 @@
             [blockchain.core :refer :all]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
-            [orchestra.spec.test :as st]))
+            [orchestra.spec.test :as st]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]))
 
 (defn instrument [f]
   (set! s/*explain-out* expound/printer)

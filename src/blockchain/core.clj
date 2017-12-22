@@ -1,9 +1,17 @@
 (ns blockchain.core
   (:require [clojure.spec.alpha :as s]
-            [expound.alpha :as expound]))
+            [expound.alpha :as expound]
+            [digest :as digest]))
 
-(s/def :bc/sha (s/and string?
-                      #(re-matches #"[A-Fa-f0-9]+" %)))
+(defn sha [x]
+  (digest/sha-256 (pr-str x)))
+
+(s/def :bc/sha
+  (s/with-gen
+    (s/and string?
+           #(re-matches #"[A-Fa-f0-9]+" %))
+    #(s/gen (into #{} (map sha (range 10))))
+    ))
 
 (s/def :bc/sender :bc/sha)
 (s/def :bc/recipient :bc/sha)
@@ -40,9 +48,6 @@
 
 (defn now [] (new java.util.Date))
 
-(defn sha-hash [x]
-  x)
-
 (s/fdef add-block
         :args (s/cat :bc :bc/bc
                      :proof :bc/proof
@@ -54,7 +59,7 @@
            :bc/timestamp (now)
            :bc/transactions (:bc/transactions bc)
            :bc/proof proof
-           :bc/prev-hash (or prev-hash (sha-hash (last (:bc/chain bc))))}))
+           :bc/prev-hash (or prev-hash (sha (last (:bc/chain bc))))}))
 
 (s/fdef blockchain
         :ret :bc/bc)
@@ -64,9 +69,6 @@
     :bc/chain []}
    (:bc/proof genesis)
    (:bc/prev-hash genesis)))
-
-(comment
-  (blockchain))
 
 (s/fdef add-tx
         :args (s/cat :bc :bc/bc
