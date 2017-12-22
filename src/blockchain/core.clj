@@ -19,7 +19,7 @@
                                    :kind vector?))
 
 (s/def :bc/index nat-int?)
-(s/def :bc/timestamp pos?)
+(s/def :bc/timestamp inst?)
 (s/def :bc/proof pos-int?)
 (s/def :bc/prev-hash :bc/sha)
 
@@ -34,6 +34,44 @@
 
 (s/def :bc/bc (s/keys :req [:bc/transactions
                             :bc/chain]))
+
+(def genesis {:bc/prev-hash "1"
+              :bc/proof 100})
+
+(defn now [] (new java.util.Date))
+
+(defn sha-hash [x]
+  x)
+
+(s/fdef add-block
+        :args (s/cat :bc :bc/bc
+                     :proof :bc/proof
+                     :prev-hash :bc/prev-hash)
+        :ret :bc/bc)
+(defn add-block [bc proof prev-hash]
+  (update bc :bc/chain conj
+          {:bc/index (+ (count (:bc/chain bc)) 1)
+           :bc/timestamp (now)
+           :bc/transactions (:bc/transactions bc)
+           :bc/proof proof
+           :bc/prev-hash (or prev-hash (sha-hash (last (:bc/chain bc))))
+           })
+  )
+
+(s/fdef blockchain
+        :ret :bc/bc)
+(defn blockchain []
+  (add-block
+   {:bc/transactions []
+    :bc/chain []}
+   (:bc/proof genesis)
+   (:bc/prev-hash genesis)
+   )
+  )
+
+(comment
+  (blockchain)
+  )
 
 (s/fdef add-tx
         :args (s/cat :bc :bc/bc
@@ -66,4 +104,8 @@
 (comment (require '[orchestra.spec.test :as st])
          (set! s/*explain-out* expound/printer)
          (st/instrument))
+
+
+
+
 

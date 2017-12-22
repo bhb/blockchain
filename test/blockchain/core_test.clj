@@ -25,3 +25,7 @@
           #:bc {:chain [],
                 :transactions
                 [#:bc {:sender "abc", :recipient "def", :amount 5}]}))))
+
+(deftest test-blockchain
+  (is (s/valid? :bc/bc (blockchain)))
+  )
