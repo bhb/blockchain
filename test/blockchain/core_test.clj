@@ -13,7 +13,7 @@
 (use-fixtures :once instrument)
 
 (deftest test-add-tx
-  (is (= #:bc {:chain [],
+  (is (= #:bc {:chain []
                :transactions
                [#:bc {:sender "abc", :recipient "def", :amount 5}]}
          (add-tx {:bc/chain []
@@ -22,10 +22,9 @@
 (deftest test-next-idx
   (is (= 0
          (next-idx
-          #:bc {:chain [],
+          #:bc {:chain []
                 :transactions
                 [#:bc {:sender "abc", :recipient "def", :amount 5}]}))))
 
 (deftest test-blockchain
-  (is (s/valid? :bc/bc (blockchain)))
-  )
+  (is (s/valid? :bc/bc (blockchain))))

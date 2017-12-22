@@ -54,9 +54,7 @@
            :bc/timestamp (now)
            :bc/transactions (:bc/transactions bc)
            :bc/proof proof
-           :bc/prev-hash (or prev-hash (sha-hash (last (:bc/chain bc))))
-           })
-  )
+           :bc/prev-hash (or prev-hash (sha-hash (last (:bc/chain bc))))}))
 
 (s/fdef blockchain
         :ret :bc/bc)
@@ -65,13 +63,10 @@
    {:bc/transactions []
     :bc/chain []}
    (:bc/proof genesis)
-   (:bc/prev-hash genesis)
-   )
-  )
+   (:bc/prev-hash genesis)))
 
 (comment
-  (blockchain)
-  )
+  (blockchain))
 
 (s/fdef add-tx
         :args (s/cat :bc :bc/bc
@@ -104,8 +99,4 @@
 (comment (require '[orchestra.spec.test :as st])
          (set! s/*explain-out* expound/printer)
          (st/instrument))
-
-
-
-
 
