@@ -54,7 +54,9 @@
                      :prev-hash :bc/prev-hash)
         :ret :bc/bc)
 (defn add-block [bc proof prev-hash]
-  (update bc :bc/chain conj
+  (update bc
+          :bc/chain
+          conj
           {:bc/index (+ (count (:bc/chain bc)) 1)
            :bc/timestamp (now)
            :bc/transactions (:bc/transactions bc)

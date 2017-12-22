@@ -9,7 +9,7 @@
                  [digest "1.4.6"]
                  ]
   :profiles {:dev {:dependencies [[io.aviso/pretty "0.1.34"]
-                                  [org.clojure/test.check "0.9.0"]
+                                  [org.clojure/test.check "0.10.0-alpha2"]
                                   [orchestra "2017.11.12-1"]
                                   [com.gfredericks/test.chuck "0.2.8"]]
                    :plugins [[io.aviso/pretty "0.1.34"]

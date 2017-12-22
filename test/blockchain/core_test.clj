@@ -1,8 +1,9 @@
 (ns blockchain.core-test
   (:require [clojure.test :refer :all]
-            [blockchain.core :refer :all]
+            [blockchain.core :refer :all :as bc]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [clojure.test.check.generators :as gen]
             [orchestra.spec.test :as st]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]))
 
@@ -29,3 +30,21 @@
 
 (deftest test-blockchain
   (is (s/valid? :bc/bc (blockchain))))
+
+(s/def :bc/ops #{`bc/add-block `bc/add-tx})
+
+(deftest block-ops
+  (checking
+   "all ops result in valid blockchain"
+   20
+   [ops (s/gen (s/coll-of :bc/ops))
+    op-args (apply gen/tuple (map #(s/gen (:args (s/spec %))) ops))
+    :let [op+args (map vector ops op-args)]]
+   (let [result (reduce
+                 (fn [bc [op args]]
+                   (apply @(resolve op)
+                          bc
+                          (rest args)))
+                 (blockchain)
+                 op+args)]
+     (is (s/valid? :bc/bc result)))))
