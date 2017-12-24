@@ -1,6 +1,8 @@
+;; From https://hackernoon.com/learn-blockchains-by-building-one-117428612f46
 (ns blockchain.core
   (:require [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [clojure.string :as string]
             [digest :as digest]))
 
 (defn sha [x]
@@ -96,6 +98,33 @@
       :bc/indix
       (or 0)))
 
+(s/fdef proof-of-work
+        :args (s/cat :last-proof :bc/proof)
+        :ret :bc/proof)
+(defn proof-of-work
+  "Simple Proof of Work Algorithm:
+   - Find a number p' such that hash(pp') contains leading 4 zeroes, where p is the previous p'
+   - p is the previous proof, and p' is the new proof"
+  [last-proof]
+  (->> (range)
+       (filter #(string/ends-with? (sha (str last-proof %)) "0000"))
+       first))
+
+(defn random-uuid [] (str (java.util.UUID/randomUUID)))
+
+(defn node-id []
+  (-> (random-uuid)
+                    str
+                    (string/replace "-" "")
+                    )
+  )
+
+(comment
+  (do
+    (require '[clojure.spec.test.alpha])
+    (clojure.spec.test.alpha/instrument))
+  )
+
 (comment
   (add-tx {:bc/chain []
            :bc/transactions []} "abc" "def" 5))
@@ -103,4 +132,12 @@
 (comment (require '[orchestra.spec.test :as st])
          (set! s/*explain-out* expound/printer)
          (st/instrument))
+
+
+
+(comment
+  (def server-id (node-id))
+
+  
+  )
 
