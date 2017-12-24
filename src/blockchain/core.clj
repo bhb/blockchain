@@ -8,6 +8,8 @@
 (defn sha [x]
   (digest/sha-256 (pr-str x)))
 
+(def system-node "0")
+
 (s/def :bc/sha
   (s/with-gen
     (s/and string?
@@ -53,17 +55,20 @@
 (s/fdef add-block
         :args (s/cat :bc :bc/bc
                      :proof :bc/proof
-                     :prev-hash :bc/prev-hash)
+                     :prev-hash (s/? :bc/prev-hash))
         :ret :bc/bc)
-(defn add-block [bc proof prev-hash]
-  (update bc
-          :bc/chain
-          conj
-          {:bc/index (+ (count (:bc/chain bc)) 1)
-           :bc/timestamp (now)
-           :bc/transactions (:bc/transactions bc)
-           :bc/proof proof
-           :bc/prev-hash (or prev-hash (sha (last (:bc/chain bc))))}))
+(defn add-block
+  ([bc proof]
+   (add-block bc proof (sha (last (:bc/chain bc)))))
+  ([bc proof prev-hash]
+   (update bc
+           :bc/chain
+           conj
+           {:bc/index (+ (count (:bc/chain bc)) 1)
+            :bc/timestamp (now)
+            :bc/transactions (:bc/transactions bc)
+            :bc/proof proof
+            :bc/prev-hash prev-hash})))
 
 (s/fdef blockchain
         :ret :bc/bc)
@@ -98,6 +103,8 @@
       :bc/indix
       (or 0)))
 
+(def ^:dynamic *suffix* "0000")
+
 (s/fdef proof-of-work
         :args (s/cat :last-proof :bc/proof)
         :ret :bc/proof)
@@ -107,7 +114,7 @@
    - p is the previous proof, and p' is the new proof"
   [last-proof]
   (->> (range)
-       (filter #(string/ends-with? (sha (str last-proof %)) "0000"))
+       (filter #(string/ends-with? (sha (str last-proof %)) *suffix*))
        first))
 
 (defn random-uuid [] (str (java.util.UUID/randomUUID)))
@@ -121,9 +128,53 @@
          (set! s/*explain-out* expound/printer)
          (st/instrument))
 
+(s/fdef mine
+        :args (s/cat :bc :bc/bc
+                     :node-id :bc/recipient)
+        :ret :bc/bc)
 (defn mine [bc node-id]
+  (let [new-proof (proof-of-work (:bc/proof (last (:bc/chain bc))))]
+    (-> bc
+        (add-tx system-node node-id 1)
+        (add-block new-proof)
+        (assoc :bc/transactions []))))
+
+;; Just for generative-testing
+(defn mine-fast [bc node-id]
+  (binding [*suffix* "0"]
+    (mine bc node-id)))
+
+(comment
+  (time
+   (mine (blockchain)
+         "a")
+   )
+
+  (time
+   (mine-fast (blockchain)
+         "a")
+   )
+  
+  
+  (transactions
+   (mine (blockchain)
+         "abc"
+         )
+   "abc"
+   )
   
   )
+
+(comment
+  (require '[clojure.spec.alpha :as s])
+  (require '[clojure.spec.test.alpha :as st1])
+  (st1/check `mine)
+  (st/check `mine)
+  (st/instrument)
+
+  )
+
+
 
 (defn transactions [bc node-id]
   (filter #(or (= node-id (:bc/recipient %))
@@ -146,10 +197,7 @@
           )
         (transactions bc node-id))))
 
-
-
 (comment
-  
   (-> (blockchain)
       (add-tx "a" "b" 10)
       (add-tx "d" "b" -100)
