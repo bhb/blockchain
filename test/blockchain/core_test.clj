@@ -33,7 +33,7 @@
 
 (s/def :bc/ops #{`bc/add-block `bc/add-tx})
 
-(deftest block-ops
+(deftest test-block-ops
   (checking
    "all ops result in valid blockchain"
    20
@@ -48,3 +48,28 @@
                  (blockchain)
                  op+args)]
      (is (s/valid? :bc/bc result)))))
+
+(deftest test-balance
+  (testing "transactions change balance"
+    (is (= 10
+           (-> (blockchain)
+               (add-tx "a" "b" 10)
+               (balance "b")
+               )
+             ))
+    )
+  )
+
+#_(deftest mine
+  (testing "mining rewards miner with a bitcoin"
+    (let [bc (blockchain)
+          miner (node-id)]
+      (is (= 
+             (-> bc
+                 (add-tx "a" "b" 0.5)
+                 (add-tx "b" "c" 0.1)
+                 (mine miner)
+                 )
+             )))
+    )
+  )

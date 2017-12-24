@@ -114,29 +114,63 @@
 
 (defn node-id []
   (-> (random-uuid)
-                    str
-                    (string/replace "-" "")
-                    )
-  )
-
-(comment
-  (do
-    (require '[clojure.spec.test.alpha])
-    (clojure.spec.test.alpha/instrument))
-  )
-
-(comment
-  (add-tx {:bc/chain []
-           :bc/transactions []} "abc" "def" 5))
+      (str)
+      (string/replace "-" "")))
 
 (comment (require '[orchestra.spec.test :as st])
          (set! s/*explain-out* expound/printer)
          (st/instrument))
 
+(defn mine [bc node-id]
+  
+  )
+
+(defn transactions [bc node-id]
+  (filter #(or (= node-id (:bc/recipient %))
+               (= node-id (:bc/sender %)))
+          (concat (:bc/transactions bc)
+                  (mapcat
+                   :bc/transactions
+                   (:bc/chain bc)))))
+
+
+(defn balance [bc node-id]
+  (reduce
+   +
+   0
+   (map (fn [tx]
+          (if (= node-id (:bc/recipient tx))
+            (:bc/amount tx)
+            (* -1 (:bc/amount tx))
+            )
+          )
+        (transactions bc node-id))))
+
 
 
 (comment
+  
+  (-> (blockchain)
+      (add-tx "a" "b" 10)
+      (add-tx "d" "b" -100)
+      (add-tx "b" "c" 100)  
+      (balance "b")
+      )
+  
+  (let [bc (-> (blockchain)
+               (add-tx "a" "b" 10)
+               (add-tx "a" "c" 11)
+               )]
+    (transactions bc "b")
+    )
+
+  
+  
   (def server-id (node-id))
+  (def bc (blockchain))
+
+  
+  
 
   
   )
