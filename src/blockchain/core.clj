@@ -19,7 +19,7 @@
 (s/def :bc/sender :bc/sha)
 (s/def :bc/recipient :bc/sha)
 (s/def :bc/amount number?)
-(s/def :bc/proof pos-int?)
+(s/def :bc/proof nat-int?)
 (s/def :bc/prev-hash :bc/sha)
 
 (s/def :bc/transaction (s/keys :req
@@ -31,7 +31,6 @@
 
 (s/def :bc/index nat-int?)
 (s/def :bc/timestamp inst?)
-(s/def :bc/proof pos-int?)
 (s/def :bc/prev-hash :bc/sha)
 
 (s/def :bc/block (s/keys :req
@@ -99,6 +98,9 @@
 
 (def ^:dynamic *suffix* "0000")
 
+(defn valid-proof? [last-proof guess]
+  (string/ends-with? (sha (str last-proof guess)) *suffix*))
+
 (s/fdef proof-of-work
         :args (s/cat :last-proof :bc/proof)
         :ret :bc/proof)
@@ -108,7 +110,7 @@
    - p is the previous proof, and p' is the new proof"
   [last-proof]
   (->> (range)
-       (filter #(string/ends-with? (sha (str last-proof %)) *suffix*))
+       (filter (partial valid-proof? last-proof))
        first))
 
 (defn random-uuid [] (str (java.util.UUID/randomUUID)))
@@ -199,6 +201,17 @@
                      :node-id :bc/node))
 (defn add-node [bc node]
   (update bc :bc/nodes conj node))
+
+(s/fdef valid?
+        :args (s/cat :bc :bc/bc)
+        :ret boolean?)
+(defn valid? [bc]
+  (every? true?
+          (for [[last-block block] (partition 2 1 (:bc/chain bc))]
+            (and (valid-proof? (:bc/proof last-block)
+                               (:bc/proof block))
+                 (= (:bc/prev-hash block)
+                    (sha last-block))))))
 
 (comment
   (require '[orchestra.spec.test :as st])

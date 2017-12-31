@@ -42,9 +42,10 @@
                 [#:bc {:sender "abc", :recipient "def", :amount 5}]}))))
 
 (deftest test-blockchain
-  (is (s/valid? :bc/bc (blockchain))))
+  (is (s/valid? :bc/bc (blockchain))
+      (expound/expound-str :bc/bc (blockchain))))
 
-(s/def :bc/ops #{`bc/add-block `bc/add-tx `bc/mine-fast `bc/add-node})
+(s/def :bc/ops #{`bc/add-tx `bc/mine-fast `bc/add-node})
 
 (deftest test-block-ops
   (checking
@@ -52,15 +53,18 @@
    10
    [ops (s/gen (s/coll-of :bc/ops))
     op-args (apply gen/tuple (map #(s/gen (:args (s/spec %))) ops))
-    :let [op+args (map vector ops op-args)]]
-   (let [result (reduce
-                 (fn [bc [op args]]
-                   (apply @(resolve op)
-                          bc
-                          (rest args)))
-                 (blockchain)
-                 op+args)]
-     (is (s/valid? :bc/bc result)))))
+    :let [op+args (map vector ops op-args)
+          result (reduce
+                  (fn [bc [op args]]
+                    (apply @(resolve op)
+                           bc
+                           (rest args)))
+                  (blockchain)
+                  op+args)]]
+   (is (s/valid? :bc/bc result)
+       (expound/expound-str :bc/bc result))
+   (is (binding [bc/*suffix* "0"]
+         (valid? result)))))
 
 (deftest test-balance
   (testing "transactions change balance"
@@ -94,16 +98,16 @@
    [ops (s/gen (s/coll-of :bc/ops))
     first-miner (s/gen :bc/recipient)
     op-args (apply gen/tuple (map #(s/gen (:args (s/spec %))) ops))
-    :let [op+args (map vector ops op-args)]]
-   (let [result (reduce
-                 (fn [bc [op args]]
-                   (apply @(resolve op)
-                          bc
-                          (rest args)))
-                 (-> (blockchain)
-                     (mine-fast first-miner))
-                 op+args)]
-     (is (zero? (-> result
-                    balance-sheet
-                    total-balance))
-         [:failed {:balance-sheet balance-sheet}]))))
+    :let [op+args (map vector ops op-args)
+          result (reduce
+                  (fn [bc [op args]]
+                    (apply @(resolve op)
+                           bc
+                           (rest args)))
+                  (-> (blockchain)
+                      (mine-fast first-miner))
+                  op+args)]]
+   (is (zero? (-> result
+                  balance-sheet
+                  total-balance))
+       [:failed {:balance-sheet balance-sheet}])))
