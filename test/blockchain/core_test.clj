@@ -16,10 +16,12 @@
 
 (deftest test-add-tx
   (is (= #:bc {:chain []
+               :nodes #{}
                :transactions
                [#:bc {:sender "0", :recipient "abc", :amount 5}
                 #:bc {:sender "abc", :recipient "def", :amount 5}]}
          (add-tx {:bc/chain []
+                  :bc/nodes #{}
                   :bc/transactions [#:bc {:sender "0", :recipient "abc", :amount 5}]} "abc" "def" 5)))
   (testing "sender cannot send more money than they have"
     (is (= 0
@@ -35,13 +37,14 @@
   (is (= 0
          (next-idx
           #:bc {:chain []
+                :nodes #{}
                 :transactions
                 [#:bc {:sender "abc", :recipient "def", :amount 5}]}))))
 
 (deftest test-blockchain
   (is (s/valid? :bc/bc (blockchain))))
 
-(s/def :bc/ops #{`bc/add-block `bc/add-tx `bc/mine-fast})
+(s/def :bc/ops #{`bc/add-block `bc/add-tx `bc/mine-fast `bc/add-node})
 
 (deftest test-block-ops
   (checking

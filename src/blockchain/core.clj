@@ -8,7 +8,7 @@
 (defn sha [x]
   (digest/sha-256 (pr-str x)))
 
-(def system-node "0")
+;;;;;;;;;;;;;;;;; specs ;;;;;;;;;;;;;;;;;;;
 
 (s/def :bc/sha
   (s/with-gen
@@ -43,8 +43,16 @@
 
 (s/def :bc/chain (s/coll-of :bc/block :kind vector?))
 
+(s/def :bc/node :bc/sha)
+(s/def :bc/nodes (s/coll-of :bc/node :kind set?))
+
 (s/def :bc/bc (s/keys :req [:bc/transactions
+                            :bc/nodes
                             :bc/chain]))
+
+;;;;;;;;;;;;;;;;; end specs ;;;;;;;;;;;;;;;;;;;
+
+(def system-node "0")
 
 (def genesis {:bc/prev-hash "1"
               :bc/proof 100})
@@ -74,7 +82,8 @@
 (defn blockchain []
   (add-block
    {:bc/transactions []
-    :bc/chain []}
+    :bc/chain []
+    :bc/nodes #{}}
    (:bc/proof genesis)
    (:bc/prev-hash genesis)))
 
@@ -167,7 +176,7 @@
 
 (s/fdef mine
         :args (s/cat :bc :bc/bc
-                     :node-id :bc/recipient)
+                     :node-id :bc/node)
         :ret :bc/bc)
 (defn mine [bc node-id]
   (let [new-proof (proof-of-work (:bc/proof (last (:bc/chain bc))))]
@@ -184,6 +193,12 @@
 (defn mine-fast [bc node-id]
   (binding [*suffix* "0"]
     (mine bc node-id)))
+
+(s/fdef add-node
+        :args (s/cat :bc :bc/bc
+                     :node-id :bc/node))
+(defn add-node [bc node]
+  (update bc :bc/nodes conj node))
 
 (comment
   (require '[orchestra.spec.test :as st])
