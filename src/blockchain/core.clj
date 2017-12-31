@@ -14,8 +14,7 @@
   (s/with-gen
     (s/and string?
            #(re-matches #"[A-Fa-f0-9]+" %))
-    #(s/gen (into #{} (map sha (range 10))))
-    ))
+    #(s/gen (into #{} (map sha (range 10))))))
 
 (s/def :bc/sender :bc/sha)
 (s/def :bc/recipient :bc/sha)
@@ -79,20 +78,6 @@
    (:bc/proof genesis)
    (:bc/prev-hash genesis)))
 
-(s/fdef add-tx
-        :args (s/cat :bc :bc/bc
-                     :sender :bc/sender
-                     :recipient :bc/recipient
-                     :amount :bc/amount)
-        :ret :bc/bc)
-(defn add-tx [bc sender recipient amount]
-  (update bc
-          :bc/transactions
-          conj
-          {:bc/sender sender
-           :bc/recipient recipient
-           :bc/amount amount}))
-
 (s/fdef next-idx
         :args (s/cat :bc :bc/bc)
         :ret :bc/index)
@@ -124,9 +109,61 @@
       (str)
       (string/replace "-" "")))
 
-(comment (require '[orchestra.spec.test :as st])
-         (set! s/*explain-out* expound/printer)
-         (st/instrument))
+(defn transactions [bc]
+  (concat (:bc/transactions bc)
+          (mapcat
+           :bc/transactions
+           (:bc/chain bc))))
+
+(defn transactions-for [bc node-id]
+  (filter #(or (= node-id (:bc/recipient %))
+               (= node-id (:bc/sender %)))
+          (transactions bc)))
+
+(defn balance [bc node-id]
+  (reduce
+   +
+   0
+   (map (fn [tx]
+          (if (= node-id (:bc/recipient tx))
+            (:bc/amount tx)
+            (* -1 (:bc/amount tx))))
+        (transactions-for bc node-id))))
+
+(defn balance-sheet [bc]
+  (reduce
+   (fn [m tx]
+     (s/assert map? m)
+     (s/assert :bc/transaction tx)
+     (-> m
+         (update (:bc/recipient tx) (fnil + 0) (:bc/amount tx))
+         (update (:bc/sender tx) (fnil - 0) (:bc/amount tx))))
+   {}
+   (transactions bc)))
+
+(defn total-balance [balance-sheet]
+  (reduce
+   +
+   0
+   (vals balance-sheet)))
+
+(s/fdef add-tx
+        :args (s/cat :bc :bc/bc
+                     :sender :bc/sender
+                     :recipient :bc/recipient
+                     :amount :bc/amount)
+        :ret :bc/bc)
+(defn add-tx [bc sender recipient amount]
+  (if (or
+       (= sender system-node)
+       (<= amount (-> bc balance-sheet (get sender 0))))
+    (update bc
+            :bc/transactions
+            conj
+            {:bc/sender sender
+             :bc/recipient recipient
+             :bc/amount amount})
+    bc))
 
 (s/fdef mine
         :args (s/cat :bc :bc/bc
@@ -140,86 +177,16 @@
         (assoc :bc/transactions []))))
 
 ;; Just for generative-testing
+(s/fdef mine-fast
+        :args (s/cat :bc :bc/bc
+                     :node-id :bc/recipient)
+        :ret :bc/bc)
 (defn mine-fast [bc node-id]
   (binding [*suffix* "0"]
     (mine bc node-id)))
 
 (comment
-  (time
-   (mine (blockchain)
-         "a")
-   )
-
-  (time
-   (mine-fast (blockchain)
-         "a")
-   )
-  
-  
-  (transactions
-   (mine (blockchain)
-         "abc"
-         )
-   "abc"
-   )
-  
-  )
-
-(comment
-  (require '[clojure.spec.alpha :as s])
-  (require '[clojure.spec.test.alpha :as st1])
-  (st1/check `mine)
-  (st/check `mine)
-  (st/instrument)
-
-  )
-
-
-
-(defn transactions [bc node-id]
-  (filter #(or (= node-id (:bc/recipient %))
-               (= node-id (:bc/sender %)))
-          (concat (:bc/transactions bc)
-                  (mapcat
-                   :bc/transactions
-                   (:bc/chain bc)))))
-
-
-(defn balance [bc node-id]
-  (reduce
-   +
-   0
-   (map (fn [tx]
-          (if (= node-id (:bc/recipient tx))
-            (:bc/amount tx)
-            (* -1 (:bc/amount tx))
-            )
-          )
-        (transactions bc node-id))))
-
-(comment
-  (-> (blockchain)
-      (add-tx "a" "b" 10)
-      (add-tx "d" "b" -100)
-      (add-tx "b" "c" 100)  
-      (balance "b")
-      )
-  
-  (let [bc (-> (blockchain)
-               (add-tx "a" "b" 10)
-               (add-tx "a" "c" 11)
-               )]
-    (transactions bc "b")
-    )
-
-  
-  
-  (def server-id (node-id))
-  (def bc (blockchain))
-
-  
-  
-
-  
-  )
-
+  (require '[orchestra.spec.test :as st])
+  (s/check-asserts true)
+  (set! s/*explain-out* expound/printer)
+  (st/instrument))
