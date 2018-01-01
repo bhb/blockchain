@@ -210,8 +210,23 @@
           (for [[last-block block] (partition 2 1 (:bc/chain bc))]
             (and (valid-proof? (:bc/proof last-block)
                                (:bc/proof block))
-                 (= (:bc/prev-hash block)
-                    (sha last-block))))))
+                 (= (sha last-block)
+                    (:bc/prev-hash block))))))
+
+(s/fdef resolve-conflicts
+        :args (s/cat
+               :bc :bc/bc
+               :other-bcs (s/coll-of :bc/bc))
+        :ret :bc/bc)
+(defn resolve-conflicts [bc other-bcs]
+  (let [candidate (->> (conj other-bcs bc)
+                       (filter valid?)
+                       (sort-by (comp count :bc/chain))
+                       last)]
+    (if (< (count (:bc/chain bc))
+           (count (:bc/chain candidate)))
+      candidate
+      bc)))
 
 (comment
   (require '[orchestra.spec.test :as st])

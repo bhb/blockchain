@@ -111,3 +111,22 @@
                   balance-sheet
                   total-balance))
        [:failed {:balance-sheet balance-sheet}])))
+
+(deftest test-resolve-conflicts
+  (testing "prefers current blockchain if both are tied"
+    (let [bc1 (-> (blockchain)
+                  (mine-fast "abc"))
+          bc2 (-> (blockchain)
+                  (mine-fast "def"))]
+      (binding [bc/*suffix* "0"]
+        (is (= bc1 (resolve-conflicts bc1 [bc2]))))))
+  (testing "longer blockchains win"
+    (let [bc1 (-> (blockchain)
+                  (mine-fast "a"))
+          bc2 (-> (blockchain)
+                  (mine-fast "b")
+                  (mine-fast "c"))]
+      (binding [bc/*suffix* "0"]
+        (is (= bc2 (resolve-conflicts bc1 [bc2])))
+        (is (= bc2 (resolve-conflicts bc2 [bc1])))
+        (is (= bc1 (resolve-conflicts bc1 [bc1])))))))
