@@ -1,14 +1,16 @@
 # blockchain
 
-A Clojure library designed to ... well, that part is up to you.
+A toy implementation of a blockchain in Clojure based on ["Learn Blockchains by Building One"](https://hackernoon.com/learn-blockchains-by-building-one-117428612f46).
 
 ## Usage
 
-FIXME
+This code has no practical use, since I only wrote it as an exercise to learn more about blockchains and practice writing [specs](https://clojure.org/guides/spec) for functions during development.
+
+If you want to run the tests, run `lein test`
 
 ## License
 
-Copyright © 2017 FIXME
+Copyright © 2018 Ben Brinckerhoff
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
