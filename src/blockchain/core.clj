@@ -14,7 +14,7 @@
   (s/with-gen
     (s/and string?
            #(re-matches #"[A-Fa-f0-9]+" %))
-    #(s/gen (into #{} (map sha (range 10))))))
+    #(s/gen (into #{} (map (fn [x] (subs (sha x) 0 5)) (range 10))))))
 
 (s/def :bc/sender :bc/sha)
 (s/def :bc/recipient :bc/sha)
@@ -48,6 +48,8 @@
 (s/def :bc/bc (s/keys :req [:bc/transactions
                             :bc/nodes
                             :bc/chain]))
+
+(s/def :bc/registry (s/map-of :bc/node :bc/bc))
 
 ;;;;;;;;;;;;;;;;; end specs ;;;;;;;;;;;;;;;;;;;
 
@@ -202,6 +204,12 @@
 (defn add-node [bc node]
   (update bc :bc/nodes conj node))
 
+(defn add-nodes [bc nodes]
+  (reduce
+   add-node
+   bc
+   nodes))
+
 (s/fdef valid?
         :args (s/cat :bc :bc/bc)
         :ret boolean?)
@@ -220,6 +228,7 @@
         :ret :bc/bc)
 (defn resolve-conflicts [bc other-bcs]
   (let [candidate (->> (conj other-bcs bc)
+                       distinct
                        (filter valid?)
                        (sort-by (comp count :bc/chain))
                        last)]
@@ -227,6 +236,21 @@
            (count (:bc/chain candidate)))
       candidate
       bc)))
+
+(s/fdef resolve-known-conflicts
+        :args (s/cat :bc :bc/bc
+                     :reg :bc/registry)
+        :ret :bc/bc)
+(defn resolve-known-conflicts
+  "Resolve conflicts between known nodes"
+  [bc registry]
+  (resolve-conflicts
+   bc
+   (or (->> bc
+            :bc/nodes
+            (select-keys registry)
+            vals)
+       [])))
 
 (comment
   (require '[orchestra.spec.test :as st])
