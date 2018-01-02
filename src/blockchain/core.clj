@@ -18,7 +18,9 @@
 
 (s/def :bc/sender :bc/sha)
 (s/def :bc/recipient :bc/sha)
-(s/def :bc/amount number?)
+;; nat-int isn't accurate for a real blockchain, but I don't
+;; really care about dealing with floating point math, etc for this exercise
+(s/def :bc/amount nat-int?)
 (s/def :bc/proof nat-int?)
 (s/def :bc/prev-hash :bc/sha)
 
@@ -251,7 +253,6 @@
             (select-keys registry)
             vals)
        [])))
-
 (comment
   (require '[orchestra.spec.test :as st])
   (s/check-asserts true)

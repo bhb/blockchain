@@ -83,8 +83,8 @@
           miner (node-id)]
       (is (= []
              (-> bc
-                 (add-tx "a" "b" 0.5)
-                 (add-tx "b" "c" 0.1)
+                 (add-tx "a" "b" 5)
+                 (add-tx "b" "c" 1)
                  (mine-fast miner)
                  (:bc/transactions))))))
   (testing "mining rewards miner with a bitcoin"
